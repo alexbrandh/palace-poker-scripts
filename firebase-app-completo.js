@@ -1,6 +1,6 @@
 // Configuración de Firebase
 const firebaseConfig = {
-    apiKey: "AIzaSyDdTlhwvEzHTnRqGmLhUARucCgw7K76XJE",
+    apiKey: "TU-CLAVE-API-AQUI",
     authDomain: "lista-de-espera-palace.firebaseapp.com",
     databaseURL: "https://lista-de-espera-palace-default-rtdb.firebaseio.com",
     projectId: "lista-de-espera-palace",
