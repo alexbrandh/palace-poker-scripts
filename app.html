@@ -1,0 +1,1862 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Palace Poker Room - Lista de Espera</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+    :root {
+        --dark-bg: #121212;
+        --dark-surface: #1e1e1e;
+        --dark-surface-light: #2d2d2d;
+        --gold: #d4af37;
+        --gold-light: #f0cf64;
+        --gold-dark: #9e8128;
+        --text-light: #f5f5f5;
+        --text-dark: #212121;
+        --status-present: #4CAF50;
+        --status-absent: #f44336;
+        --status-change: #2196F3;
+        --accent: #8b5cf6;
+        --stake-low: #4CAF50;       /* Stakes bajos ($25/$50): verde */
+        --stake-medium: #2196F3;    /* Stakes intermedios ($50/$50, $50/$100): azul */
+        --stake-high: #9c27b0;      /* Stakes altos ($100/$100, $100/$200): púrpura */
+        --stake-special: #ff5722;   /* Stakes especiales (Botón $50/$200, $100/$400): naranja/rojo */
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Montserrat', sans-serif;
+    }
+
+    body {
+        background-color: var(--dark-bg);
+        color: var(--text-light);
+        min-height: 100vh;
+    }
+
+    .app-container {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+
+    header {
+        background-color: var(--dark-surface);
+        padding: 15px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .logo-img {
+        height: 50px;
+    }
+
+    main {
+        display: flex;
+        flex: 1;
+        padding: 20px;
+        gap: 20px;
+    }
+
+    .active-tables, .waiting-lists {
+        flex: 1;
+        background-color: var(--dark-surface);
+        border-radius: 8px;
+        padding: 20px;
+        overflow-y: auto;
+        max-height: calc(100vh - 160px);
+    }
+
+    h2 {
+        color: var(--gold);
+        border-bottom: 2px solid var(--gold);
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
+    .table-card {
+        background-color: var(--dark-surface-light);
+        border-radius: 8px;
+        margin-bottom: 15px;
+        overflow: hidden;
+    }
+
+    .table-header {
+        padding: 10px 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--text-dark);
+        font-weight: bold;
+    }
+
+    .table-content {
+        padding: 15px;
+    }
+
+    .table-info {
+        margin-bottom: 10px;
+    }
+
+    .game-type {
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .buyin-range, .seats {
+        font-size: 0.9em;
+        margin-bottom: 5px;
+    }
+
+    /* Colores para stakes */
+    .stake-low .table-header {
+        background-color: var(--stake-low);
+    }
+
+    .stake-medium .table-header {
+        background-color: var(--stake-medium);
+    }
+
+    .stake-high .table-header {
+        background-color: var(--stake-high);
+    }
+
+    .stake-special .table-header {
+        background-color: var(--stake-special);
+    }
+
+    .waiting-list {
+        background-color: var(--dark-surface-light);
+        border-radius: 8px;
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+
+    .list-header {
+        background-color: var(--dark-surface);
+        padding: 10px 15px;
+        color: var(--gold);
+        border-bottom: 1px solid var(--gold-dark);
+    }
+
+    .players-list {
+        list-style: none;
+    }
+
+    .player-item {
+        padding: 10px 15px;
+        border-bottom: 1px solid var(--dark-surface);
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .status-present {
+        border-left: 4px solid var(--status-present);
+    }
+
+    .status-absent {
+        border-left: 4px solid var(--status-absent);
+    }
+
+    .player-name {
+        font-weight: bold;
+    }
+
+    .player-wait-time {
+        color: #999;
+        font-size: 0.9em;
+    }
+
+    .status-header {
+        padding: 5px 15px;
+        font-size: 0.9em;
+    }
+
+    .status-header.present {
+        color: var(--status-present);
+    }
+
+    .status-header.absent {
+        color: var(--status-absent);
+    }
+
+    .gold-button {
+        background-color: var(--gold);
+        color: var(--text-dark);
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .gold-button:hover {
+        background-color: var(--gold-light);
+    }
+
+    .no-data {
+        text-align: center;
+        padding: 20px;
+        color: #999;
+    }
+
+    footer {
+        background-color: var(--dark-surface);
+        padding: 15px;
+        text-align: center;
+        font-size: 0.9em;
+        color: #999;
+    }
+
+    /* Modal styles */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.7);
+        z-index: 1000;
+    }
+
+    .modal-content {
+        background-color: var(--dark-surface);
+        color: var(--text-light);
+        margin: 10% auto;
+        padding: 20px;
+        border-radius: 8px;
+        width: 80%;
+        max-width: 600px;
+    }
+
+    .close {
+        color: var(--text-light);
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .admin-modal-content {
+        width: 90%;
+        max-width: 1200px;
+    }
+
+    /* Tabs */
+    .admin-tabs {
+        display: flex;
+        margin-bottom: 20px;
+    }
+
+    .tab-button {
+        background-color: var(--dark-surface-light);
+        border: none;
+        padding: 10px 20px;
+        cursor: pointer;
+        color: var(--text-light);
+        border-bottom: 2px solid transparent;
+    }
+
+    .tab-button.active {
+        border-bottom: 2px solid var(--gold);
+        font-weight: bold;
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    /* Form styles */
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    input, select {
+        background-color: var(--dark-surface-light);
+        border: 1px solid #444;
+        color: var(--text-light);
+        padding: 8px;
+        border-radius: 4px;
+        width: 100%;
+    }
+
+    .form-info {
+        font-size: 0.8em;
+        color: #999;
+        margin-top: 5px;
+    }
+
+    /* Table management */
+    .table-management, .player-management {
+        display: flex;
+        gap: 20px;
+    }
+
+    .form-container, .tables-list, .waiting-lists-management {
+        flex: 1;
+    }
+
+    .table-item {
+        background-color: var(--dark-surface-light);
+        border-radius: 8px;
+        margin-bottom: 10px;
+        padding: 15px;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .table-actions, .player-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    /* Call time badge */
+    .call-time-complete {
+        position: relative;
+    }
+
+    .call-time-badge {
+        position: absolute;
+        right: 10px;
+        color: var(--gold);
+    }
+
+    /* New player animation */
+    @keyframes highlight {
+        0% { background-color: rgba(212, 175, 55, 0.3); }
+        100% { background-color: transparent; }
+    }
+
+    .new-player {
+        animation: highlight 2s ease-out;
+    }
+
+    /* Toast notifications */
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1001;
+    }
+
+    .toast {
+        background-color: var(--dark-surface);
+        color: var(--text-light);
+        border-radius: 4px;
+        padding: 10px 15px;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        display: flex;
+        flex-direction: column;
+        min-width: 250px;
+    }
+
+    .toast-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 5px;
+    }
+
+    .toast-close {
+        background: none;
+        border: none;
+        color: var(--text-light);
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+    .toast-success {
+        border-left: 4px solid var(--status-present);
+    }
+
+    .toast-error {
+        border-left: 4px solid var(--status-absent);
+    }
+
+    /* Animations */
+    .fade-in {
+        animation: fadeIn 0.3s ease-in;
+    }
+
+    .fade-out {
+        animation: fadeOut 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+        main {
+            flex-direction: column;
+        }
+        
+        .table-management, .player-management {
+            flex-direction: column;
+        }
+    }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="current-time">
+                <span id="current-date-time"></span>
+            </div>
+            <div class="logo">
+                <img src="https://uploads-ssl.webflow.com/6478fa7955456e6a89b9618b/66022e12de3c0f05dfd7a2d7_LOGOS.png" alt="Palace Poker Room" class="logo-img">
+            </div>
+            <div class="admin-access">
+                <button id="admin-button" class="gold-button"><i class="fas fa-lock"></i> Área de Supervisores</button>
+            </div>
+        </header>
+
+        <main>
+            <section class="active-tables">
+                <h2>MESAS ACTIVAS</h2>
+                <div id="active-tables-container">
+                    <!-- Tables will be displayed here dynamically -->
+                </div>
+            </section>
+
+            <section class="waiting-lists">
+                <h2>LISTAS DE ESPERA</h2>
+                <div id="waiting-lists-container">
+                    <!-- Waiting lists will be displayed here dynamically -->
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="footer-content">
+                <p>© <span id="current-year"></span> Palace Poker Room - Sistema de Lista de Espera</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Acceso de Supervisores</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">Usuario:</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Contraseña:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="gold-button">Acceder</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard Modal -->
+    <div id="admin-dashboard" class="modal">
+        <div class="modal-content admin-modal-content">
+            <span class="close admin-close">&times;</span>
+            <h2>Panel de Control</h2>
+            
+            <div class="admin-tabs">
+                <button class="tab-button active" data-tab="tables">Mesas</button>
+                <button class="tab-button" data-tab="players">Jugadores</button>
+            </div>
+            
+            <div id="tables-tab" class="tab-content active">
+                <h3>Gestión de Mesas</h3>
+                <div class="table-management">
+                    <div class="form-container">
+                        <h4>Activar Mesa</h4>
+                        <form id="table-form">
+                            <div class="form-group">
+                                <label for="table-number">Número de Mesa:</label>
+                                <input type="number" id="table-number" min="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="game-type">Tipo de Juego:</label>
+                                <select id="game-type" required>
+                                    <option value="Texas NLHE">Texas NLHE</option>
+                                    <option value="Omaha PLO">Omaha PLO</option>
+                                    <option value="Texas/Omaha">Texas/Omaha</option>
+                                    <option value="OMAHA/Mata AA">OMAHA/Mata AA</option>
+                                    <option value="Dealer Choice">Dealer Choice</option>
+                                    <option value="Mata AA">Mata AA</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="stake">Stake:</label>
+                                <select id="stake" required>
+                                    <!-- Stakes estándar -->
+                                    <option value="$25/$50">$25/$50</option>
+                                    <option value="$50/$50">$50/$50</option>
+                                    <option value="$50/$100">$50/$100</option>
+                                    <option value="$100/$100">$100/$100</option>
+                                    <option value="$100/$200">$100/$200</option>
+                                    <!-- Stakes con botón -->
+                                    <option value="Botón $50/$200">Botón $50/$200</option>
+                                    <option value="Botón $100/$400">Botón $100/$400</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="buyinMin">Buy-in Mínimo ($):</label>
+                                <select id="buyinMin" required>
+                                    <option value="2000">$2,000</option>
+                                    <option value="5000">$5,000</option>
+                                    <option value="10000">$10,000</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="buyinMax">Buy-in Máximo ($):</label>
+                                <select id="buyinMax" required>
+                                    <option value="10000">$10,000</option>
+                                    <option value="20000">$20,000</option>
+                                    <option value="50000">$50,000</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="availableSeats">Puestos disponibles:</label>
+                                <input type="number" id="availableSeats" min="0" max="9" value="9" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="tableStatus">Estado:</label>
+                                <select id="tableStatus" required>
+                                    <option value="active">Activa</option>
+                                    <option value="opening">En apertura</option>
+                                    <option value="inactive">Inactiva</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="callTime">Call Time (horas):</label>
+                                <select id="callTime" required>
+                                    <option value="2">2 horas (para $25/$50)</option>
+                                    <option value="3">3 horas (para stakes mayores)</option>
+                                </select>
+                                <small class="form-info">Tiempo mínimo obligatorio para jugadores en la mesa</small>
+                            </div>
+                            <button type="submit" class="gold-button">Activar Mesa</button>
+                        </form>
+                    </div>
+                    
+                    <div class="tables-list">
+                        <h4>Mesas Activas</h4>
+                        <div id="admin-tables-list">
+                            <!-- Active tables will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="players-tab" class="tab-content">
+                <h3>Gestión de Jugadores</h3>
+                <div class="player-management">
+                    <div class="form-container">
+                        <h4>Añadir Jugador</h4>
+                        <form id="player-form">
+                            <div class="form-group">
+                                <label for="player-name">Nombre:</label>
+                                <input type="text" id="player-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="player-game-type">Tipo de Juego:</label>
+                                <select id="player-game-type" required>
+                                    <option value="Texas NLHE">Texas NLHE</option>
+                                    <option value="Omaha PLO">Omaha PLO</option>
+                                    <option value="Texas/Omaha">Texas/Omaha</option>
+                                    <option value="OMAHA/Mata AA">OMAHA/Mata AA</option>
+                                    <option value="Dealer Choice">Dealer Choice</option>
+                                    <option value="Mata AA">Mata AA</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="player-stake">Stake:</label>
+                                <select id="player-stake" required>
+                                    <option value="25/50">25/50</option>
+                                    <option value="50/50">50/50</option>
+                                    <option value="50/100">50/100</option>
+                                    <option value="100/100">100/100</option>
+                                    <option value="100/200">100/200</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="player-status">Estado:</label>
+                                <select id="player-status" required>
+                                    <option value="Presente">Presente</option>
+                                    <option value="Ausente">Ausente</option>
+                                    <option value="Jugando">Jugando</option>
+                                    <option value="Cambio de Mesa">Cambio de Mesa</option>
+                                </select>
+                                <small class="form-info">El call time solo se cuenta cuando el estado es "Jugando"</small>
+                            </div>
+                            <div id="additional-options-container" style="display: none;"></div>
+                            <button type="submit" class="gold-button">Añadir Jugador</button>
+                        </form>
+                    </div>
+                    
+                    <div class="waiting-lists-management">
+                        <h4>Listas de Espera</h4>
+                        <div class="admin-waiting-lists-selector">
+                            <label for="admin-list-filter">Filtrar por:</label>
+                            <select id="admin-list-filter">
+                                <option value="all">Todos</option>
+                                <option value="Presente">Presentes</option>
+                                <option value="Ausente">Ausentes</option>
+                                <option value="Jugando">Jugando</option>
+                            </select>
+                        </div>
+                        <div id="admin-waiting-lists">
+                            <!-- Waiting lists will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <script>
+    // Configuración de Firebase
+    const firebaseConfig = {
+        apiKey: "J5ugxfCTH4sVQ1hrpfk1tCzaiiYFbZMjKS5pZnLv",
+        authDomain: "lista-de-espera-palace.firebaseapp.com",
+        databaseURL: "https://lista-de-espera-palace-default-rtdb.firebaseio.com",
+        projectId: "lista-de-espera-palace",
+        storageBucket: "lista-de-espera-palace.appspot.com",
+        messagingSenderId: "1001196881051",
+        appId: "1:1001196881051:web:9af1c75de15c15b41fc0e0"
+    };
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    // Referencia a la base de datos
+    const db = firebase.database();
+
+    // Obtener ubicación de la URL
+    function getLocationFromUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        let location = urlParams.get('location');
+        
+        if (!location) {
+            const path = window.location.pathname.toLowerCase();
+            if (path.includes('lista-de-espera-cdmx')) {
+                location = 'cdmx';
+            } else if (path.includes('lista-de-espera-cancun')) {
+                location = 'cancun';
+            } else if (path.includes('lista-de-espera-puebla')) {
+                location = 'puebla';
+            } else if (path.includes('lista-de-espera-monterrey')) {
+                location = 'monterrey';
+            } else {
+                location = 'cdmx'; // Default
+            }
+        }
+        
+        console.log("Ubicación detectada:", location);
+        return location;
+    }
+
+    // Obtener la ubicación actual
+    const currentLocation = getLocationFromUrl();
+    
+    // Referencia a la ubicación actual
+    const locationRef = db.ref(`locations/${currentLocation}`);
+    const tablesRef = locationRef.child('tables');
+    const playersRef = locationRef.child('players');
+
+    // Variables para almacenar datos
+    let tables = [];
+    let players = [];
+
+    // Elementos DOM
+    const activeTablesContainer = document.getElementById('active-tables-container');
+    const waitingListsContainer = document.getElementById('waiting-lists-container');
+    const adminButton = document.getElementById('admin-button');
+    const loginModal = document.getElementById('login-modal');
+    const adminDashboard = document.getElementById('admin-dashboard');
+    const closeLoginModal = document.querySelector('#login-modal .close');
+    const closeAdminModal = document.querySelector('#admin-dashboard .close');
+    const loginForm = document.getElementById('login-form');
+    const tableForm = document.getElementById('table-form');
+    const playerForm = document.getElementById('player-form');
+    const adminTablesTab = document.getElementById('tables-tab');
+    const adminPlayersTab = document.getElementById('players-tab');
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const adminTablesList = document.getElementById('admin-tables-list');
+    const adminWaitingLists = document.getElementById('admin-waiting-lists');
+    const adminListFilter = document.getElementById('admin-list-filter');
+    const currentDateTimeElement = document.getElementById('current-date-time');
+    const currentYearElement = document.getElementById('current-year');
+
+    // Función para generar IDs únicos
+    function generateId() {
+        return Date.now().toString(36) + Math.random().toString(36).substr(2, 5).toUpperCase();
+    }
+
+    // Escuchar cambios en las mesas
+    function setupTableListener() {
+        tablesRef.on('value', (snapshot) => {
+            tables = [];
+            snapshot.forEach((childSnapshot) => {
+                tables.push(childSnapshot.val());
+            });
+            
+            // Ordenar mesas por número
+            tables.sort((a, b) => parseInt(a.number) - parseInt(b.number));
+            
+            // Actualizar la interfaz
+            renderActiveTables();
+            renderAdminTablesList();
+        });
+    }
+
+    // Escuchar cambios en los jugadores
+    function setupPlayerListener() {
+        playersRef.on('value', (snapshot) => {
+            players = [];
+            snapshot.forEach((childSnapshot) => {
+                players.push(childSnapshot.val());
+            });
+            
+            // Ordenar jugadores por timestamp (más antiguos primero)
+            players.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            
+            // Actualizar la interfaz
+            renderWaitingLists();
+            renderAdminWaitingLists();
+        });
+    }
+
+    // Función para renderizar mesas activas
+    function renderActiveTables() {
+        if (!activeTablesContainer) return;
+        
+        // Filtrar mesas activas
+        const activeTables = tables.filter(table => table.active || table.status === 'opening');
+        
+        if (activeTables.length === 0) {
+            activeTablesContainer.innerHTML = '<p class="no-data">No hay mesas activas en este momento.</p>';
+            return;
+        }
+        
+        // Agrupar por tipo de juego
+        const groupedTables = groupBy(activeTables, table => table.gameType);
+        
+        let html = '';
+        
+        for (const [gameType, groupTables] of Object.entries(groupedTables)) {
+            html += `<div class="table-group fade-in"><h3 class="group-header">${gameType}</h3><div class="group-tables">`;
+            
+            // Agrupar por stake dentro de cada tipo de juego
+            const stakeGroupedTables = groupBy(groupTables, table => table.stake);
+            
+            for (const [stake, stakesTables] of Object.entries(stakeGroupedTables)) {
+                stakesTables.forEach(table => {
+                    // Determinar clase de color según el stake
+                    let colorClass = '';
+                    if (table.stake.includes('$25/$50')) {
+                        colorClass = 'stake-low';
+                    } else if (table.stake.includes('$50/$50') || table.stake.includes('$50/$100')) {
+                        colorClass = 'stake-medium';
+                    } else if (table.stake.includes('$100/$100') || table.stake.includes('$100/$200')) {
+                        colorClass = 'stake-high';
+                    } else if (table.stake.includes('Botón')) {
+                        colorClass = 'stake-special';
+                    }
+                    
+                    // Determinar estado de asientos
+                    let seatsText = '';
+                    let seatsClass = '';
+                    
+                    if (table.status === 'opening') {
+                        seatsText = 'En apertura';
+                        seatsClass = 'status-opening';
+                    } else if (parseInt(table.availableSeats) === 0) {
+                        seatsText = 'Llena';
+                        seatsClass = 'status-full';
+                    } else {
+                        seatsText = `${table.availableSeats} asientos disponibles`;
+                        seatsClass = 'status-available';
+                    }
+                    
+                    html += `
+                        <div class="table-card ${colorClass}" data-id="${table.id}">
+                            <div class="table-header">
+                                <h4>Mesa ${table.number}</h4>
+Cascade error
+The model produced an invalid tool call.
+${table.stake} ${table.gameType} Buy-in: $${parseInt(table.buyinMin).toLocaleString()} - $${parseInt(table.buyinMax).toLocaleString()} ${seatsText} `;
+
+// Obtener jugadores en esta mesa const tablePlayers = players.filter(p => p.table === table.id && p.status === 'Jugando');
+
+CopyInsert
+                if (tablePlayers.length > 0) {
+                    html += `<div class="table-players"><h5>Jugadores:</h5><ul>`;
+                    
+                    tablePlayers.forEach(player => {
+                        // Verificar si el jugador ha cumplido el call time
+                        const callTimeComplete = hasPlayerCompletedCallTime(player, table);
+                        
+                        html += `
+                            <li class="${callTimeComplete ? 'call-time-complete' : ''}">
+                                <span class="player-name">${player.name}</span>
+                                ${player.seat ? `<span class="player-seat">Asiento ${player.seat}</span>` : ''}
+                                ${callTimeComplete ? '<span class="call-time-badge" title="Call time completado"><i class="fas fa-clock"></i></span>' : ''}
+                            </li>
+                        `;
+                    });
+                    
+                    html += `</ul></div>`;
+                }
+                
+                html += `</div></div>`;
+            });
+        }
+        
+        html += `</div></div>`;
+    }
+    
+    activeTablesContainer.innerHTML = html;
+}
+
+// Función para renderizar listas de espera
+function renderWaitingLists() {
+    if (!waitingListsContainer) return;
+    
+    // Filtrar jugadores que no están jugando
+    const waitingPlayers = players.filter(player => player.status !== 'Jugando');
+    
+    if (waitingPlayers.length === 0) {
+        waitingListsContainer.innerHTML = '<p class="no-data">No hay jugadores en lista de espera en este momento.</p>';
+        return;
+    }
+    
+    // Agrupar por tipo de juego y stake
+    const groupedPlayers = groupBy(waitingPlayers, player => `${player.gameType} - ${player.stake}`);
+    
+    // Ordenar grupos por popularidad (número de jugadores)
+    const sortedGroups = Object.entries(groupedPlayers).sort((a, b) => b[1].length - a[1].length);
+    
+    let html = '';
+    
+    for (const [groupName, groupPlayers] of sortedGroups) {
+        html += `<div class="waiting-list fade-in"><h3 class="list-header">${groupName}</h3>`;
+        
+        // Separar jugadores por estado
+        const presentPlayers = groupPlayers.filter(player => player.status === 'Presente');
+        const absentPlayers = groupPlayers.filter(player => player.status === 'Ausente');
+        
+        // Ordenar por timestamp (más antiguos primero)
+        presentPlayers.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        absentPlayers.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        
+        // Jugadores presentes
+        if (presentPlayers.length > 0) {
+            html += `<h4 class="status-header present">Presentes</h4><ul class="players-list">`;
+            
+            presentPlayers.forEach(player => {
+                const waitTime = formatTimeSince(player.timestamp);
+                
+                html += `
+                    <li class="player-item status-present ${player.isNew ? 'new-player' : ''}">
+                        <span class="player-name">${player.name}</span>
+                        <span class="player-wait-time">${waitTime}</span>
+                    </li>
+                `;
+            });
+            
+            html += `</ul>`;
+        }
+        
+        // Jugadores ausentes
+        if (absentPlayers.length > 0) {
+            html += `<h4 class="status-header absent">Ausentes</h4><ul class="players-list">`;
+            
+            absentPlayers.forEach(player => {
+                const waitTime = formatTimeSince(player.timestamp);
+                
+                html += `
+                    <li class="player-item status-absent">
+                        <span class="player-name">${player.name}</span>
+                        <span class="player-wait-time">${waitTime}</span>
+                    </li>
+                `;
+            });
+            
+            html += `</ul>`;
+        }
+        
+        html += `</div>`;
+    }
+    
+    waitingListsContainer.innerHTML = html;
+}
+
+// Función para comprobar si un jugador ha cumplido el call time
+function hasPlayerCompletedCallTime(player, table) {
+    if (!player.startTime) return false;
+    
+    const startTime = new Date(player.startTime);
+    const now = new Date();
+    const diffHours = (now - startTime) / (1000 * 60 * 60);
+    
+    // Obtener el call time de la mesa
+    let requiredHours = 2; // Default para mesas $25/$50
+    
+    if (table && table.callTime) {
+        requiredHours = parseInt(table.callTime);
+    } else if (player.table) {
+        // Si no tenemos la mesa directamente, buscarla
+        const playerTable = tables.find(t => t.id === player.table);
+        if (playerTable && playerTable.callTime) {
+            requiredHours = parseInt(playerTable.callTime);
+        }
+    }
+    
+    return diffHours >= requiredHours;
+}
+
+// Función para formatear el tiempo transcurrido
+function formatTimeSince(isoString) {
+    const date = new Date(isoString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 60) {
+        return `${diffMins} min`;
+    } else {
+        const diffHrs = Math.floor(diffMins / 60);
+        return `${diffHrs} h ${diffMins % 60} min`;
+    }
+}
+
+// Función para actualizar fecha y hora
+function updateDateTime() {
+    if (currentDateTimeElement) {
+        const now = new Date();
+        const options = { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        
+        // Primera letra en mayúscula
+        let formattedDate = now.toLocaleDateString('es-MX', options);
+        formattedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
+        
+        currentDateTimeElement.textContent = formattedDate;
+    }
+    
+    if (currentYearElement) {
+        currentYearElement.textContent = new Date().getFullYear();
+    }
+}
+
+// Función para agrupar arrays
+function groupBy(array, keyGetter) {
+    const map = new Map();
+    array.forEach((item) => {
+        const key = keyGetter(item);
+        const collection = map.get(key);
+        if (!collection) {
+            map.set(key, [item]);
+        } else {
+            collection.push(item);
+        }
+    });
+    return Object.fromEntries(map);
+}
+
+// Función para añadir tabla
+function addTable(tableData) {
+    // Asegurarse de que tiene un ID único
+    tableData.id = tableData.id || generateId();
+    
+    // Añadir timestamp si no tiene
+    if (!tableData.timestamp) {
+        tableData.timestamp = new Date().toISOString();
+    }
+    
+    // Añadir la mesa a Firebase
+    tablesRef.child(tableData.id).set(tableData)
+        .then(() => {
+            showToast('Éxito', `Mesa ${tableData.number} añadida`, 'success');
+        })
+        .catch(error => {
+            console.error("Error añadiendo mesa:", error);
+            showToast('Error', `No se pudo añadir la mesa: ${error.message}`, 'error');
+        });
+}
+
+// Función para actualizar tabla
+function updateTable(tableId, tableData) {
+    tablesRef.child(tableId).update(tableData)
+        .then(() => {
+            showToast('Éxito', `Mesa ${tableData.number || ''} actualizada`, 'success');
+        })
+        .catch(error => {
+            console.error("Error actualizando mesa:", error);
+            showToast('Error', `No se pudo actualizar la mesa: ${error.message}`, 'error');
+        });
+}
+
+// Función para eliminar tabla
+function deleteTable(tableId) {
+    tablesRef.child(tableId).remove()
+        .then(() => {
+            showToast('Éxito', 'Mesa eliminada', 'success');
+        })
+        .catch(error => {
+            console.error("Error eliminando mesa:", error);
+            showToast('Error', `No se pudo eliminar la mesa: ${error.message}`, 'error');
+        });
+}
+
+// Función para añadir jugador
+function addPlayer(playerData) {
+    // Asegurarse de que tiene un ID único
+    playerData.id = playerData.id || generateId();
+    
+    // Añadir el jugador a Firebase
+    playersRef.child(playerData.id).set(playerData)
+        .then(() => {
+            showToast('Éxito', `Jugador ${playerData.name} añadido`, 'success');
+            
+            // Eliminar la marca de nuevo después de 5 minutos
+            if (playerData.isNew) {
+                setTimeout(() => {
+                    playersRef.child(playerData.id).update({ isNew: false });
+                }, 300000); // 5 minutos
+            }
+        })
+        .catch(error => {
+            console.error("Error añadiendo jugador:", error);
+            showToast('Error', `No se pudo añadir el jugador: ${error.message}`, 'error');
+        });
+}
+
+// Función para actualizar jugador
+function updatePlayer(playerId, playerData) {
+    playersRef.child(playerId).update(playerData)
+        .then(() => {
+            showToast('Éxito', `Jugador ${playerData.name || ''} actualizado`, 'success');
+        })
+        .catch(error => {
+            console.error("Error actualizando jugador:", error);
+            showToast('Error', `No se pudo actualizar el jugador: ${error.message}`, 'error');
+        });
+}
+
+// Función para eliminar jugador
+function deletePlayer(playerId) {
+    playersRef.child(playerId).remove()
+        .then(() => {
+            showToast('Éxito', 'Jugador eliminado', 'success');
+        })
+        .catch(error => {
+            console.error("Error eliminando jugador:", error);
+            showToast('Error', `No se pudo eliminar el jugador: ${error.message}`, 'error');
+        });
+}
+
+// Función para mostrar toast notification
+function showToast(title, message, type = 'info') {
+    // Create toast container if it doesn't exist
+    let toastContainer = document.querySelector('.toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Create new toast
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type} fade-in`;
+    
+    // Icon based on type
+    let icon = '';
+    switch (type) {
+        case 'success':
+            icon = '<i class="fas fa-check-circle"></i>';
+            break;
+        case 'error':
+            icon = '<i class="fas fa-exclamation-circle"></i>';
+            break;
+        case 'warning':
+            icon = '<i class="fas fa-exclamation-triangle"></i>';
+            break;
+        default:
+            icon = '<i class="fas fa-info-circle"></i>';
+    }
+    
+    toast.innerHTML = `
+        <div class="toast-header">
+            ${icon}
+            <strong>${title}</strong>
+            <button class="toast-close">&times;</button>
+        </div>
+        <div class="toast-body">
+            ${message}
+        </div>
+    `;
+    
+    // Add to container
+    toastContainer.appendChild(toast);
+    
+    // Add close button functionality
+    const closeButton = toast.querySelector('.toast-close');
+    closeButton.addEventListener('click', () => {
+        toast.classList.add('fade-out');
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    });
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        toast.classList.add('fade-out');
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, 5000);
+}
+
+// Función para renderizar mesas en el panel de admin
+function renderAdminTablesList() {
+    if (!adminTablesList) return;
+    
+    if (tables.length === 0) {
+        adminTablesList.innerHTML = '<p class="no-data">No hay mesas configuradas.</p>';
+        return;
+    }
+    
+    let html = '';
+    
+    tables.forEach(table => {
+        // Determinar clase de color según el stake
+        let colorClass = '';
+        if (table.stake.includes('$25/$50')) {
+            colorClass = 'stake-low';
+        } else if (table.stake.includes('$50/$50') || table.stake.includes('$50/$100')) {
+            colorClass = 'stake-medium';
+        } else if (table.stake.includes('$100/$100') || table.stake.includes('$100/$200')) {
+            colorClass = 'stake-high';
+        } else if (table.stake.includes('Botón')) {
+            colorClass = 'stake-special';
+        }
+        
+        const tableStatus = table.active ? 'Activa' : 'Inactiva';
+        const statusClass = table.active ? 'status-active' : 'status-inactive';
+        
+        html += `
+            <div class="table-item ${colorClass}" data-id="${table.id}">
+                <div class="table-info">
+                    <h4>Mesa ${table.number}</h4>
+                    <p>${table.gameType} - ${table.stake}</p>
+                    <p>Asientos: ${table.availableSeats} disponibles</p>
+                    <p>Buy-in: $${parseInt(table.buyinMin).toLocaleString()} - $${parseInt(table.buyinMax).toLocaleString()}</p>
+                    <p class="table-status ${statusClass}">${tableStatus}</p>
+                    <p>Call Time: ${table.callTime} horas</p>
+                </div>
+                <div class="table-actions">
+                    <button class="toggle-table gold-button" data-id="${table.id}">
+                        ${table.active ? '<i class="fas fa-pause"></i> Pausar' : '<i class="fas fa-play"></i> Activar'}
+                    </button>
+                    <button class="edit-table gold-button" data-id="${table.id}"><i class="fas fa-edit"></i> Editar</button>
+                    <button class="delete-table gold-button" data-id="${table.id}"><i class="fas fa-trash"></i> Eliminar</button>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '<button class="clear-data-button gold-button"><i class="fas fa-trash-alt"></i> Borrar todos los datos</button>';
+    
+    adminTablesList.innerHTML = html;
+    
+    // Añadir event listeners a los botones
+    document.querySelectorAll('.toggle-table').forEach(button => {
+        button.addEventListener('click', function() {
+            const tableId = this.dataset.id;
+            const table = tables.find(t => t.id === tableId);
+            if (table) {
+                updateTable(tableId, { active: !table.active });
+            }
+        });
+    });
+    
+    document.querySelectorAll('.edit-table').forEach(button => {
+        button.addEventListener('click', function() {
+            const tableId = this.dataset.id;
+            editTable(tableId);
+        });
+    });
+    
+    document.querySelectorAll('.delete-table').forEach(button => {
+        button.addEventListener('click', function() {
+            const tableId = this.dataset.id;
+            if (confirm('¿Estás seguro de que quieres eliminar esta mesa?')) {
+                deleteTable(tableId);
+            }
+        });
+    });
+    
+    const clearDataButton = document.querySelector('.clear-data-button');
+    if (clearDataButton) {
+        clearDataButton.addEventListener('click', function() {
+            if (confirm('¿Estás seguro de que quieres borrar TODOS los datos? Esta acción no se puede deshacer.')) {
+                // Borrar todas las mesas
+                tablesRef.remove()
+                    .then(() => {
+                        // Borrar todos los jugadores
+                        return playersRef.remove();
+                    })
+                    .then(() => {
+                        showToast('Éxito', 'Todos los datos han sido eliminados', 'success');
+                        
+                        // Preguntar si se quieren añadir datos de demo
+                        if (confirm('¿Quieres añadir datos de demostración?')) {
+                            addDemoData();
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error limpiando datos:", error);
+                        showToast('Error', `No se pudieron limpiar los datos: ${error.message}`, 'error');
+                    });
+            }
+        });
+    }
+}
+
+// Función para renderizar listas de espera en el panel de admin
+function renderAdminWaitingLists() {
+    if (!adminWaitingLists || !adminListFilter) return;
+    
+    const filter = adminListFilter.value;
+    let filteredPlayers = [];
+    
+    if (filter === 'all') {
+        filteredPlayers = players;
+    } else {
+        filteredPlayers = players.filter(player => player.status === filter);
+    }
+    
+    if (filteredPlayers.length === 0) {
+        adminWaitingLists.innerHTML = '<p class="no-data">No hay jugadores que coincidan con el filtro actual.</p>';
+        return;
+    }
+    
+    // Agrupar por tipo de juego y stake
+    const groupedPlayers = groupBy(filteredPlayers, player => `${player.gameType} - ${player.stake}`);
+    
+    let html = '';
+    
+    for (const [groupName, groupPlayers] of Object.entries(groupedPlayers)) {
+        html += `<div class="waiting-list fade-in"><h4 class="list-header">${groupName}</h4><ul class="players-list">`;
+        
+        // Ordenar por timestamp (más antiguos primero)
+        groupPlayers.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        
+        groupPlayers.forEach(player => {
+            const statusClass = player.status === 'Presente' ? 'status-present' :
+                              player.status === 'Ausente' ? 'status-absent' :
+                              player.status === 'Jugando' ? 'status-playing' : '';
+            
+            const waitTime = formatTimeSince(player.timestamp);
+            
+            html += `
+                <li class="player-item ${player.isNew ? 'new-player' : ''} ${statusClass}">
+                    <div class="player-info">
+                        <span class="player-name">${player.name}</span>
+                        <span class="player-status">${player.status}</span>
+                        <span class="player-wait-time">Tiempo: ${waitTime}</span>
+                    </div>
+                    <div class="player-actions">
+                        <button class="edit-player gold-button" data-id="${player.id}"><i class="fas fa-edit"></i></button>
+                        <button class="delete-player gold-button" data-id="${player.id}"><i class="fas fa-trash"></i></button>
+                    </div>
+                </li>
+            `;
+        });
+        
+        html += `</ul></div>`;
+    }
+    
+    adminWaitingLists.innerHTML = html;
+    
+    // Añadir event listeners a los botones
+    document.querySelectorAll('.edit-player').forEach(button => {
+        button.addEventListener('click', function() {
+            const playerId = this.dataset.id;
+            editPlayer(playerId);
+        });
+    });
+    
+    document.querySelectorAll('.delete-player').forEach(button => {
+        button.addEventListener('click', function() {
+            const playerId = this.dataset.id;
+            if (confirm('¿Estás seguro de que quieres eliminar este jugador?')) {
+                deletePlayer(playerId);
+            }
+        });
+    });
+}
+
+// Función para editar una mesa
+function editTable(tableId) {
+    const table = tables.find(t => t.id === tableId);
+    if (table && tableForm) {
+        document.getElementById('table-number').value = table.number;
+        document.getElementById('game-type').value = table.gameType;
+        document.getElementById('stake').value = table.stake;
+        document.getElementById('buyinMin').value = table.buyinMin;
+        document.getElementById('buyinMax').value = table.buyinMax;
+        document.getElementById('availableSeats').value = table.availableSeats;
+        document.getElementById('tableStatus').value = table.status || 'active';
+        document.getElementById('callTime').value = table.callTime || '2';
+        
+        // Cambiar el botón del formulario a "Actualizar" y añadir el ID de la mesa
+        const submitButton = tableForm.querySelector('button[type="submit"]');
+        submitButton.textContent = 'Actualizar Mesa';
+        submitButton.dataset.edit = 'true';
+        submitButton.dataset.tableId = tableId;
+    }
+}
+
+// Función para editar un jugador
+function editPlayer(playerId) {
+    const player = players.find(p => p.id === playerId);
+    if (player && playerForm) {
+        document.getElementById('player-name').value = player.name;
+        document.getElementById('player-game-type').value = player.gameType;
+        document.getElementById('player-stake').value = player.stake;
+        document.getElementById('player-status').value = player.status;
+        
+        // Opciones adicionales para jugadores que están jugando
+        const additionalOptionsContainer = document.getElementById('additional-options-container');
+        if (additionalOptionsContainer) {
+            if (player.status === 'Jugando') {
+                additionalOptionsContainer.style.display = 'block';
+                additionalOptionsContainer.innerHTML = '';
+                
+                // Selector de mesa
+                const tableGroup = document.createElement('div');
+                tableGroup.className = 'form-group';
+                
+                const tableLabel = document.createElement('label');
+                tableLabel.htmlFor = 'table-select';
+                tableLabel.textContent = 'Mesa:';
+                
+                const tableSelect = document.createElement('select');
+                tableSelect.id = 'table-select';
+                tableSelect.required = true;
+                
+                // Poblar con mesas activas
+                tables.filter(t => t.active).forEach(table => {
+                    const option = document.createElement('option');
+                    option.value = table.id;
+                    option.textContent = `Mesa ${table.number} - ${table.gameType} (${table.stake})`;
+                    tableSelect.appendChild(option);
+                });
+                
+                // Seleccionar mesa actual si existe
+                if (player.table) {
+                    tableSelect.value = player.table;
+                }
+                
+                tableGroup.appendChild(tableLabel);
+                tableGroup.appendChild(tableSelect);
+                additionalOptionsContainer.appendChild(tableGroup);
+                
+                // Input para asiento
+                const seatGroup = document.createElement('div');
+                seatGroup.className = 'form-group';
+                
+                const seatLabel = document.createElement('label');
+                seatLabel.htmlFor = 'seat-input';
+                seatLabel.textContent = 'Asiento:';
+                
+                const seatInput = document.createElement('input');
+                seatInput.type = 'number';
+                seatInput.id = 'seat-input';
+                seatInput.min = 1;
+                seatInput.max = 9;
+                
+                // Establecer asiento actual si existe
+                if (player.seat) {
+                    seatInput.value = player.seat;
+                }
+                
+                seatGroup.appendChild(seatLabel);
+                seatGroup.appendChild(seatInput);
+                additionalOptionsContainer.appendChild(seatGroup);
+                
+                // Input para hora de inicio
+                const timeGroup = document.createElement('div');
+                timeGroup.className = 'form-group';
+                
+                const timeLabel = document.createElement('label');
+                timeLabel.htmlFor = 'start-time-input';
+                timeLabel.textContent = 'Hora de inicio:';
+                
+                const timeInput = document.createElement('input');
+                timeInput.type = 'datetime-local';
+                timeInput.id = 'start-time-input';
+                
+                // Establecer hora de inicio actual o hora actual
+                if (player.startTime) {
+                    const date = new Date(player.startTime);
+                    const localDateTime = date.toISOString().slice(0, 16);
+                    timeInput.value = localDateTime;
+                } else {
+                    const now = new Date();
+                    const localDateTime = now.toISOString().slice(0, 16);
+                    timeInput.value = localDateTime;
+                }
+                
+                timeGroup.appendChild(timeLabel);
+                timeGroup.appendChild(timeInput);
+                additionalOptionsContainer.appendChild(timeGroup);
+            } else {
+                additionalOptionsContainer.style.display = 'none';
+                additionalOptionsContainer.innerHTML = '';
+            }
+        }
+        
+        // Cambiar el botón del formulario a "Actualizar" y añadir el ID del jugador
+        const submitButton = playerForm.querySelector('button[type="submit"]');
+        submitButton.textContent = 'Actualizar Jugador';
+        submitButton.dataset.edit = 'true';
+        submitButton.dataset.playerId = playerId;
+    }
+}
+
+// Función para añadir datos de demostración
+function addDemoData() {
+    // Mesas de demostración
+    const demoTables = [
+        {
+            id: generateId(),
+            number: '1',
+            gameType: 'Texas NLHE',
+            stake: '$25/$50',
+            availableSeats: 4,
+            status: 'active',
+            active: true,
+            buyinMin: '2000',
+            buyinMax: '5000',
+            callTime: '2',
+            timestamp: new Date().toISOString()
+        },
+        {
+            id: generateId(),
+            number: '2',
+            gameType: 'Texas NLHE',
+            stake: '$50/$100',
+            availableSeats: 2,
+            status: 'active',
+            active: true,
+            buyinMin: '5000',
+            buyinMax: '15000',
+            callTime: '3',
+            timestamp: new Date().toISOString()
+        },
+        {
+            id: generateId(),
+            number: '3',
+            gameType: 'Omaha PLO',
+            stake: '$100/$100',
+            availableSeats: 6,
+            status: 'active',
+            active: true,
+            buyinMin: '10000',
+            buyinMax: '50000',
+            callTime: '3',
+            timestamp: new Date().toISOString()
+        }
+    ];
+    
+    // Jugadores de demostración
+    const demoPlayers = [
+        {
+            id: generateId(),
+            name: 'Juan Pérez',
+            gameType: 'Texas NLHE',
+            stake: '25/50',
+            status: 'Presente',
+            timestamp: new Date(Date.now() - 25 * 60000).toISOString(),
+            isNew: false
+        },
+        {
+            id: generateId(),
+            name: 'María González',
+            gameType: 'Texas NLHE',
+            stake: '50/100',
+            status: 'Presente',
+            timestamp: new Date(Date.now() - 15 * 60000).toISOString(),
+            isNew: false
+        },
+        {
+            id: generateId(),
+            name: 'Carlos Rodríguez',
+            gameType: 'Omaha PLO',
+            stake: '100/100',
+            status: 'Jugando',
+            table: demoTables[2].id, // Mesa 3 de Omaha
+            seat: 4,
+            startTime: new Date(Date.now() - 60 * 60000).toISOString(), // Inicio hace 1 hora
+            timestamp: new Date(Date.now() - 120 * 60000).toISOString(),
+            isNew: false
+        }
+    ];
+    
+    // Guardar mesas
+    demoTables.forEach(table => {
+        tablesRef.child(table.id).set(table);
+    });
+    
+    // Guardar jugadores
+    demoPlayers.forEach(player => {
+        playersRef.child(player.id).set(player);
+    });
+    
+    showToast('Éxito', 'Datos de demostración añadidos', 'success');
+}
+
+// Inicializar la aplicación cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM cargado, inicializando aplicación...');
+    
+    // Actualizar fecha y hora
+    updateDateTime();
+    setInterval(updateDateTime, 60000);
+    
+    // Inicializar año en el footer
+    if (currentYearElement) {
+        currentYearElement.textContent = new Date().getFullYear();
+    }
+    
+    // Configurar escuchas en tiempo real
+    setupTableListener();
+    setupPlayerListener();
+    
+    // Comprobar si hay datos y añadir datos de demostración si es necesario
+    setTimeout(function() {
+        tablesRef.once('value').then((snapshot) => {
+            if (!snapshot.exists()) {
+                console.log('No hay mesas, añadiendo datos de demo...');
+                addDemoData();
+            }
+        });
+    }, 2000);
+    
+    //
+Cascade error
+The model produced an invalid tool call.
+// Event Listeners //
+
+// Admin button if (adminButton && loginModal) { adminButton.addEventListener('click', function() { loginModal.style.display = 'block'; }); }
+
+CopyInsert
+    // Close modals
+    if (closeLoginModal) {
+        closeLoginModal.addEventListener('click', function() {
+            loginModal.style.display = 'none';
+        });
+    }
+    
+    if (closeAdminModal) {
+        closeAdminModal.addEventListener('click', function() {
+            adminDashboard.style.display = 'none';
+        });
+    }
+    
+    // Close modals when clicking outside
+    window.addEventListener('click', function(event) {
+        if (event.target === loginModal) {
+            loginModal.style.display = 'none';
+        }
+        if (event.target === adminDashboard) {
+            adminDashboard.style.display = 'none';
+        }
+    });
+    
+    // Login form
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // Credenciales simplificadas para demostración
+            if (username === 'admin' && password === 'palace123') {
+                loginModal.style.display = 'none';
+                adminDashboard.style.display = 'block';
+                
+                // Actualizar las listas en el panel de admin
+                renderAdminTablesList();
+                renderAdminWaitingLists();
+            } else {
+                alert('Credenciales incorrectas. Por favor, inténtalo de nuevo.');
+            }
+        });
+    }
+    
+    // Tab buttons
+    if (tabButtons) {
+        tabButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const tabName = this.dataset.tab;
+                
+                // Desactivar todos los botones y contenido de pestañas
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                
+                // Activar el botón y contenido seleccionados
+                this.classList.add('active');
+                document.getElementById(`${tabName}-tab`).classList.add('active');
+            });
+        });
+    }
+    
+    // Table form
+    if (tableForm) {
+        tableForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const tableData = {
+                number: document.getElementById('table-number').value,
+                gameType: document.getElementById('game-type').value,
+                stake: document.getElementById('stake').value,
+                buyinMin: document.getElementById('buyinMin').value,
+                buyinMax: document.getElementById('buyinMax').value,
+                availableSeats: parseInt(document.getElementById('availableSeats').value),
+                status: document.getElementById('tableStatus').value,
+                callTime: document.getElementById('callTime').value,
+                active: document.getElementById('tableStatus').value === 'active',
+                timestamp: new Date().toISOString()
+            };
+            
+            const submitButton = this.querySelector('button[type="submit"]');
+            
+            if (submitButton.dataset.edit === 'true') {
+                // Actualizar mesa existente
+                const tableId = submitButton.dataset.tableId;
+                updateTable(tableId, tableData);
+                
+                // Restablecer el botón
+                submitButton.textContent = 'Activar Mesa';
+                submitButton.dataset.edit = 'false';
+                delete submitButton.dataset.tableId;
+            } else {
+                // Verificar si ya existe una mesa con ese número
+                const existingTable = tables.find(t => t.number === tableData.number);
+                if (existingTable) {
+                    const confirm = window.confirm(`Ya existe una mesa con el número ${tableData.number}. ¿Quieres actualizarla?`);
+                    if (confirm) {
+                        updateTable(existingTable.id, tableData);
+                    }
+                } else {
+                    // Añadir nueva mesa
+                    addTable(tableData);
+                }
+            }
+            
+            // Limpiar formulario
+            this.reset();
+        });
+    }
+    
+    // Player form
+    if (playerForm) {
+        playerForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            let playerData = {
+                name: document.getElementById('player-name').value,
+                gameType: document.getElementById('player-game-type').value,
+                stake: document.getElementById('player-stake').value,
+                status: document.getElementById('player-status').value,
+                timestamp: new Date().toISOString(),
+                isNew: true
+            };
+            
+            // Si el jugador está jugando, añadir información adicional
+            if (playerData.status === 'Jugando') {
+                const tableSelect = document.getElementById('table-select');
+                const seatInput = document.getElementById('seat-input');
+                const startTimeInput = document.getElementById('start-time-input');
+                
+                if (tableSelect && tableSelect.value) {
+                    playerData.table = tableSelect.value;
+                }
+                
+                if (seatInput && seatInput.value) {
+                    playerData.seat = parseInt(seatInput.value);
+                }
+                
+                if (startTimeInput && startTimeInput.value) {
+                    // Convertir fecha local a ISO string
+                    const startTime = new Date(startTimeInput.value);
+                    playerData.startTime = startTime.toISOString();
+                }
+            }
+            
+            const submitButton = this.querySelector('button[type="submit"]');
+            
+            if (submitButton.dataset.edit === 'true') {
+                // Actualizar jugador existente
+                const playerId = submitButton.dataset.playerId;
+                updatePlayer(playerId, playerData);
+                
+                // Restablecer el botón
+                submitButton.textContent = 'Añadir Jugador';
+                submitButton.dataset.edit = 'false';
+                delete submitButton.dataset.playerId;
+            } else {
+                // Añadir nuevo jugador
+                addPlayer(playerData);
+            }
+            
+            // Limpiar formulario
+            this.reset();
+            
+            // Ocultar opciones adicionales
+            const additionalOptionsContainer = document.getElementById('additional-options-container');
+            if (additionalOptionsContainer) {
+                additionalOptionsContainer.style.display = 'none';
+                additionalOptionsContainer.innerHTML = '';
+            }
+        });
+        
+        // Mostrar/ocultar opciones adicionales según el estado
+        const playerStatusSelect = document.getElementById('player-status');
+        if (playerStatusSelect) {
+            playerStatusSelect.addEventListener('change', function() {
+                const additionalOptionsContainer = document.getElementById('additional-options-container');
+                if (!additionalOptionsContainer) return;
+                
+                if (this.value === 'Jugando') {
+                    // Mostrar opciones para jugadores jugando
+                    additionalOptionsContainer.style.display = 'block';
+                    additionalOptionsContainer.innerHTML = '';
+                    
+                    // Selector de mesa
+                    const tableGroup = document.createElement('div');
+                    tableGroup.className = 'form-group';
+                    
+                    const tableLabel = document.createElement('label');
+                    tableLabel.htmlFor = 'table-select';
+                    tableLabel.textContent = 'Mesa:';
+                    
+                    const tableSelect = document.createElement('select');
+                    tableSelect.id = 'table-select';
+                    tableSelect.required = true;
+                    
+                    // Poblar con mesas activas
+                    tables.filter(t => t.active).forEach(table => {
+                        const option = document.createElement('option');
+                        option.value = table.id;
+                        option.textContent = `Mesa ${table.number} - ${table.gameType} (${table.stake})`;
+                        tableSelect.appendChild(option);
+                    });
+                    
+                    tableGroup.appendChild(tableLabel);
+                    tableGroup.appendChild(tableSelect);
+                    additionalOptionsContainer.appendChild(tableGroup);
+                    
+                    // Input para asiento
+                    const seatGroup = document.createElement('div');
+                    seatGroup.className = 'form-group';
+                    
+                    const seatLabel = document.createElement('label');
+                    seatLabel.htmlFor = 'seat-input';
+                    seatLabel.textContent = 'Asiento:';
+                    
+                    const seatInput = document.createElement('input');
+                    seatInput.type = 'number';
+                    seatInput.id = 'seat-input';
+                    seatInput.min = 1;
+                    seatInput.max = 9;
+                    
+                    seatGroup.appendChild(seatLabel);
+                    seatGroup.appendChild(seatInput);
+                    additionalOptionsContainer.appendChild(seatGroup);
+                    
+                    // Input para hora de inicio
+                    const timeGroup = document.createElement('div');
+                    timeGroup.className = 'form-group';
+                    
+                    const timeLabel = document.createElement('label');
+                    timeLabel.htmlFor = 'start-time-input';
+                    timeLabel.textContent = 'Hora de inicio:';
+                    
+                    const timeInput = document.createElement('input');
+                    timeInput.type = 'datetime-local';
+                    timeInput.id = 'start-time-input';
+                    
+                    // Establecer hora actual
+                    const now = new Date();
+                    const localDateTime = now.toISOString().slice(0, 16);
+                    timeInput.value = localDateTime;
+                    
+                    timeGroup.appendChild(timeLabel);
+                    timeGroup.appendChild(timeInput);
+                    additionalOptionsContainer.appendChild(timeGroup);
+                } else {
+                    // Ocultar opciones para otros estados
+                    additionalOptionsContainer.style.display = 'none';
+                    additionalOptionsContainer.innerHTML = '';
+                }
+            });
+        }
+    }
+    
+    // Admin list filter
+    if (adminListFilter) {
+        adminListFilter.addEventListener('change', function() {
+            renderAdminWaitingLists();
+        });
+    }
+});
+</script>
