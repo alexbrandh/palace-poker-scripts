@@ -657,6 +657,12 @@
         return new Intl.NumberFormat('es-MX').format(num);
     }
     
+    // Formatear el call time para mostrar horas en lugar de minutos
+    function formatCallTime(minutes) {
+        const hours = minutes / 60;
+        return (hours === 1) ? "1 hora" : `${hours} horas`;
+    }
+    
     // Verificar si un jugador ha cumplido su call time
     function hasPlayerCompletedCallTime(player) {
         if (player.status !== 'Jugando' || !player.startTime) {
@@ -719,7 +725,7 @@
                         Buy-in: $${formatNumber(table.minBuyin || table.buyinMin || 1000)} - $${formatNumber(table.maxBuyin || table.buyinMax || 5000)}
                     </div>
                     <div class="call-time-info">
-                        <i class="fas fa-clock"></i> Call time: <span class="call-time-value">${table.callTime || 30}</span> minutos
+                        <i class="fas fa-clock"></i> Call time: <span class="call-time-value">${formatCallTime(table.callTime || 120)}</span>
                     </div>
                 </div>
             `;
@@ -792,7 +798,7 @@
             listHeader.innerHTML = `
                 <h3>${groupName}</h3>
                 <div class="list-details">
-                    <span class="list-call-time"><i class="fas fa-clock"></i> Call time: ${callTime} min</span>
+                    <span class="list-call-time"><i class="fas fa-clock"></i> Call time: ${formatCallTime(callTime)}</span>
                     ${buyinInfo ? `<span class="list-buyin">${buyinInfo}</span>` : ''}
                 </div>
             `;
